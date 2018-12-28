@@ -3,7 +3,6 @@ require 'json'
 require 'net/http'
 require 'yaml'
 require 'solid_waffle'
-require 'pry'
 
 def platform_uses_ssh(platform)
   uses_ssh = if platform !~ %r{win-}
@@ -22,7 +21,7 @@ def token_from_fogfile
   token
 end
 
-def provision(platform, inventory_location)
+def provision(platform, inventory_location, key_file = nil)
   include SolidWaffle
   uri = URI.parse("http://vcloud.delivery.puppetlabs.net/vm/#{platform}")
   headers = { 'X-AUTH-TOKEN' => token_from_fogfile }
@@ -40,6 +39,7 @@ def provision(platform, inventory_location)
     node = { 'name' => hostname,
              'config' => { 'transport' => 'ssh', 'ssh' => { 'host-key-check' => false } },
              'facts' => { 'provisioner' => 'abs' } }
+    node['config']['ssh']['private-key'] = key_file unless key_file.nil?
     group_name = 'ssh_nodes'
   else
     node = { 'name' => hostname,
@@ -81,11 +81,12 @@ platform = params['platform']
 action = params['action']
 node_name = params['node_name']
 inventory_location = params['inventory']
+key_file = params['key_file']
 raise 'specify a node_name if tearing down' if action == 'tear_down' && node_name.nil?
 raise 'specify a platform if provisioning' if action == 'provision' && platform.nil?
 
 begin
-  result = provision(platform, inventory_location) if action == 'provision'
+  result = provision(platform, inventory_location, key_file) if action == 'provision'
   result = tear_down(node_name, inventory_location) if action == 'tear_down'
   puts result.to_json
   exit 0
