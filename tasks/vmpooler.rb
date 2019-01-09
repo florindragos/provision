@@ -24,7 +24,12 @@ end
 def provision(platform, inventory_location)
   include SolidWaffle
   uri = URI.parse("http://vcloud.delivery.puppetlabs.net/vm/#{platform}")
-  headers = { 'X-AUTH-TOKEN' => token_from_fogfile }
+	
+	if token_from_fogfile.nil? || token_from_fogfile.empty?
+    headers = { 'X-AUTH-TOKEN' => token_from_fogfile }
+  else
+	  headers = nil
+	end
 
   http = Net::HTTP.new(uri.host, uri.port)
   request = Net::HTTP::Post.new(uri.request_uri, headers)
